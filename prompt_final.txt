@@ -1,0 +1,89 @@
+Preciso que você recrie, em Apps Script (GmailApp.sendEmail), o template de e-mail marketing que estou anexando como referência de imagem, adaptado pra Essência do Brasil (perfumaria natural, essenciadobrasil.com.br).
+
+TEMA da campanha (mesmo tema que a imagem de referência representa): _______________
+
+Siga o processo abaixo, NA ORDEM - não pule etapa nem escreva código antes de terminar as anteriores.
+
+ETAPA 1 - Contar os produtos do modelo
+Olhe a imagem de referência e me diga quantos produtos cabem no layout (quantos cards/vitrines de produto aparecem). Não siga adiante até eu confirmar.
+
+ETAPA 2 - Receber os produtos
+Vou te enviar exatamente essa quantidade de produtos (nome de cada um) e as fotos deles. Espere eu mandar tudo antes de continuar.
+
+ETAPA 3 - Pesquisar os produtos no site
+Pra cada produto que eu enviar, busque a página dele em https://essenciadobrasil.com.br/ e reúna as informações reais que o site oferece (preço, notas olfativas, benefícios, descrição, categoria). Os textos do e-mail final precisam ser coerentes com essas informações reais - não invente característica que o site não confirma.
+
+Nessa mesma etapa, pesquise também os links de MENU/NAVEGAÇÃO que o e-mail vai usar (ex: "Perfumes", "Óleos Essenciais", "Essências", "Kits" etc. no cabeçalho ou no rodapé). Confirme, navegando de verdade no site, que cada categoria citada existe e ache a URL real dela (a página de categoria/coleção correspondente, não a home genérica). Se alguma categoria do modelo de referência não existir no site (ex: "Joias"), NÃO invente uma URL nem deixe apontando pra home - troque o nome do link por uma categoria que exista de verdade e que faça sentido pro tema da campanha, com o link real dessa categoria. Todo link de navegação do e-mail final precisa levar exatamente pro lugar que o texto do link promete - nunca um link genérico ou incoerente com o nome.
+
+ETAPA 4 - Escrever os textos
+Com base nas informações reais coletadas e no TEMA informado acima, escreva os textos do e-mail (título, legendas, descrições, botões) em tom poético - evocativo, sensorial, sem ser apelativo nem prometer o que o produto não entrega.
+
+ETAPA 5 - Gerar os banners
+Gere as imagens de banner no mesmo estilo visual da imagem de referência (composição, iluminação, paleta, enquadramento), combinando com o TEMA informado. Se algum banner do modelo mostra produto(s), adapte a cena pra usar os produtos reais escolhidos nesta campanha (não os produtos genéricos do modelo) - preservando fidelidade ao formato do frasco, rótulo e cor de cada um. Adicione o link de cada produto usado no banner.
+
+ETAPA 6 - Montar o código
+Só depois de tudo isso, monte o .gs. Regras fixas de engenharia (sempre válidas, não mudam a cada pedido, e existem porque cada uma delas já causou um bug real e visível em um envio anterior - siga TODAS à risca, sem exceção, mesmo que pareçam excesso de cuidado):
+
+=== ESTRUTURA GERAL ===
+
+1. HTML baseado em tabelas (<table>/<tr>/<td>) com estilo inline em cada elemento - único jeito confiável em Gmail, Outlook e Apple Mail. Nada de CSS externo. O único uso aceitável de um bloco <style> é para a media query de responsividade (ver seção MOBILE abaixo) - todo o resto do visual (cor, fonte, padding, largura) tem que estar inline em cada tag, repetido em cada elemento, mesmo que pareça redundante.
+
+=== LARGURA E FLUIDEZ (a causa da maioria dos bugs de rolagem horizontal) ===
+
+2. A tabela externa (o "envelope" que envolve todo o e-mail) tem que ser FLUIDA, nunca de largura fixa em pixel. Errado: `<table width="900" style="width:900px;max-width:900px;">`. Certo: `<table width="100%" style="width:100%;max-width:900px;">` - ou seja, o atributo HTML `width` é sempre "100%", e é o `max-width` no style que define o tamanho "de referência" do design (a largura que a imagem de referência sugere). Motivo: o Gmail no computador (Gmail.com, versão web) tem um painel de leitura que costuma ser mais estreito que 900px, e diferente do app do celular, ele NÃO aplica as regras de `@media` dentro do `<style>` (limitação conhecida e documentada desse cliente específico - é comportamento normal do Gmail web, não um bug raro). Isso significa que qualquer correção de responsividade baseada em media query PODE SIMPLESMENTE NÃO FUNCIONAR no Gmail do computador, então a única defesa confiável é a tabela já nascer fluida por padrão, funcionando com ou sem suporte a media query.
+
+3. Pela mesma razão, qualquer trecho do layout que tenha VÁRIAS colunas lado a lado (ex: uma grade de produtos, um conjunto de selos/badges) tem que usar largura em PORCENTAGEM em cada coluna, nunca pixel fixo. Errado: 6 colunas de produto cada uma com `width="150"` (150px × 6 = 900px fixos, que é exatamente a largura do modelo - funciona por coincidência no desktop, mas força o mínimo de 900px em QUALQUER tela, mesmo uma bem mais estreita, causando rolagem horizontal). Certo: cada coluna com `width="16.66%"` (proporcional ao container, encolhe junto com ele).
+
+4. TODA tabela do e-mail (a externa e qualquer uma aninhada dentro de uma célula) precisa ter um `width` explícito no HTML e no style - nunca deixe uma tabela sem largura nenhuma ("automática"). Uma tabela sem width pode crescer além do esperado e forçar rolagem horizontal mesmo com a tabela-pai configurada certinho.
+
+5. TODA tabela que tenha `width="100%"` (a externa e qualquer uma de múltiplas colunas) precisa também ter `table-layout:fixed` no style. Isso impede que um conteúdo sem quebra de linha (um botão, um texto comprido, um nome de produto) force aquela coluna/tabela a crescer além da largura declarada em porcentagem - sem isso, mesmo respeitando a regra 3 (largura em %), o navegador ainda pode alargar a tabela pra caber o conteúdo, reintroduzindo a rolagem horizontal.
+
+   EXCEÇÃO IMPORTANTE à regra 5: não use `table-layout:fixed` numa tabela em que a versão mobile (media query) apenas REDIMENSIONA A PORCENTAGEM de uma célula, sem trocar o `display` dela para `block`. O exemplo clássico é um banner "hero" com foto de fundo, onde o texto ocupa uma coluna de 44% no desktop e 58% no celular, mas continua lado a lado com a imagem (nunca empilha por completo). Nesse caso específico, `table-layout:fixed` trava a largura da coluna no valor original e a media query não consegue mais redimensioná-la de verdade - o texto fica espremido numa coluna estreita demais e quebra letra por letra (bug real, já visto em produção). Use `table-layout:fixed` SOMENTE nas tabelas onde a versão mobile empilha de verdade (célula muda para `display:block!important;width:100%!important`, como as classes `.stack100`/`.benefit-cell`/`.footer-col` da seção MOBILE abaixo). Se não tiver certeza se uma tabela empilha ou só redimensiona a porcentagem, NÃO aplique `table-layout:fixed` nela - é mais seguro deixar de fora do que quebrar o texto.
+
+6. Nunca junte dois links/palavras com `&nbsp;` dos dois lados do separador quando a lista puder ser longa (ex: `link1&nbsp;•&nbsp;link2&nbsp;•&nbsp;link3`). Isso proíbe a quebra de linha exatamente ali, e se a lista for comprida o suficiente, empurra a tabela inteira pra fora da tela. Use espaço normal (sem `&nbsp;`) em volta do separador, para que o navegador possa quebrar a linha ali se precisar.
+
+=== IMAGENS E ÍCONES ===
+
+7. Toda imagem `<img>` precisa ter `max-width:100%` no style, além dos atributos `width` e `height` normais em pixel - isso garante que, se por qualquer motivo o container ficar mais estreito que o tamanho original da imagem, ela encolhe junto em vez de forçar a tela a ficar mais larga que o previsto.
+
+8. Ícones: sempre PNG pequeno, fundo transparente, anexado inline (`cid:`) via `Utilities.newBlob(Utilities.base64Decode(...))` + `inlineImages`. Nunca emoji, símbolo Unicode ou desenho em CSS/SVG. Todo `<img>` de ícone precisa dos atributos HTML `width` E `height` (não só CSS) - alguns clientes de e-mail ignoram o tamanho definido só via CSS e mostram o ícone no tamanho original do arquivo se os atributos HTML width/height não estiverem lá também.
+
+9. Evitar sprite/recorte de ícone via CSS (background-position cortando um ícone de uma imagem maior) - suporte instável entre clientes de e-mail, já testado e descartado.
+
+=== TEXTO ===
+
+10. Texto sempre HTML real, nunca desenhado dentro de uma imagem - exceção só pro banner principal (hero), que pode ter foto de fundo com texto real sobreposto (técnica `background` + fallback VML pra Outlook).
+
+=== VERSÃO MOBILE (media query) ===
+
+11. O e-mail precisa ter uma adaptação real pra tela pequena, não só o layout de computador encolhido. Use `@media only screen and (max-width:XXXpx)` com classes tipo `.stack100` (empilha uma coluna embaixo da outra: `display:block!important;width:100%!important;max-width:100%!important;`) e `.stackgap` (espaçador vertical entre elementos empilhados) pra reorganizar colunas em uma só, e revise se textos, botões e imagens continuam legíveis/clicáveis nesse tamanho (fonte não pequena demais, botão com área de toque confortável).
+
+12. O valor do breakpoint da media query (o `XXXpx` da regra 11) tem que ser um pouco MAIOR que o `max-width` da tabela principal (regra 2), nunca um valor genérico como 600px "porque é o padrão do mercado". Exemplo: se a tabela principal tem `max-width:900px`, o breakpoint tem que ser algo como `max-width:920px`. Motivo: se o breakpoint for 600px mas a tabela for 900px, sobra uma "zona morta" entre 600px e 900px onde a tela não é nem desktop completo (900px) nem celular empilhado - nela a tabela fica travada na largura de 900px e força rolagem horizontal. Essa zona morta é comum em janelas de e-mail que não são tela cheia, como o próprio painel de leitura do Gmail no computador.
+
+13. TODA classe de media query que force `width:100%` (ou qualquer porcentagem fixa) num elemento que TAMBÉM tenha padding lateral (esquerda/direita) precisa incluir `box-sizing:border-box!important` na mesma regra. Exemplo do erro: `.stack100{display:block!important;width:100%!important;}` aplicado numa célula que já tem `padding:20px 30px` no style normal - sem o `box-sizing:border-box`, o navegador soma o padding POR CIMA da largura de 100% (esse é o comportamento padrão do modelo de caixa em CSS), e a célula fica mais larga que a tela mesmo declarando "100%". Isso empurra o e-mail inteiro pra rolagem horizontal e corta texto na borda. Correção: `.stack100{display:block!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;}` - e o mesmo vale pra qualquer outra classe do tipo (`.footer-col`, `.benefit-cell`, `.mobile-button` etc.) que combine width fixo/100% com padding.
+
+=== LINKS E NAVEGAÇÃO ===
+
+14. TODO link do e-mail (menu/navegação, botões, links de produto, banners) precisa levar pra um lugar real e coerente com o texto do link - nunca um link "de preenchimento" que só aponta pra home do site por padrão. Antes de escrever o código, confirme (pesquisando de verdade, como pedido na ETAPA 3) que cada categoria/coleção citada no menu existe no site e pegue a URL real dela. Se uma categoria do modelo de referência não existir no site (ex: o modelo tem um item "Joias" mas o site não vende joias), NÃO deixe esse link apontando pra home nem invente uma URL - troque o NOME do item de menu por uma categoria real que exista e faça sentido, com o link verdadeiro dela. Prefira usar itens de menu e links que você já confirmou que existem de verdade a manter a estrutura do modelo de referência à risca. Bug real que essa regra evita: um template já entregue tinha "PERFUMES", "ÓLEOS ESSENCIAIS", "ESSÊNCIAS", "KITS" e "JOIAS" todos linkando pra mesma URL genérica (a home), sendo que "Joias" nem existe como categoria no site - visualmente parecia certo, mas cada clique levava pro lugar errado.
+
+=== RODAPÉ / DESCADASTRO ===
+
+15. O bloco de descadastro no rodapé do e-mail (a faixa escura no final, antes de fechar a tabela) tem que usar EXATAMENTE este texto, sem reescrever, resumir, traduzir ou "melhorar" - é o texto padrão de compliance da empresa, não um texto de exemplo:
+
+"Você recebeu este e-mail porque está em nossa lista de relacionamento. Para solicitar o descadastramento, responda a esta mensagem com o assunto DESCADASTRAR."
+
+Não substitua por um link de descadastro, não adicione texto extra nessa frase, e não troque a frase por outra versão "equivalente" - use sempre essa exata.
+
+=== ENTREGA ===
+
+16. Entregar como um único arquivo .gs, pronto pra colar no Apps Script, com uma função enviarTeste...() de teste.
+
+=== RESUMO DA LÓGICA POR TRÁS DAS REGRAS 2-13 (pra não esquecer o "porquê") ===
+
+Existem DOIS problemas diferentes que juntos causam quase toda rolagem horizontal em e-mail HTML, e as regras acima atacam os dois ao mesmo tempo:
+
+a) O Gmail no computador não aplica media query. Por isso o layout TEM que funcionar mesmo sem nenhuma regra de `@media` sendo aplicada - daí a fluidez obrigatória (regras 2, 3), o `table-layout:fixed` (regra 5) e o `max-width:100%` em imagens (regra 7). Essas regras protegem o e-mail em QUALQUER cliente, com ou sem suporte a media query.
+
+b) Nos clientes que APLICAM media query (app do Gmail no celular, Apple Mail, Outlook novo etc.), o código da media query em si pode ter bugs sutis que recriam o mesmo problema de rolagem horizontal ou, ao contrário, quebram o texto por travar demais uma coluna - daí as regras 11, 12 e 13 (breakpoint correto, box-sizing correto) e a exceção da regra 5 (não travar com table-layout:fixed uma coluna que só redimensiona porcentagem sem empilhar).
+
+Trate as regras 2-13 como uma checklist final antes de considerar o código pronto - revise o `.gs` gerado contra cada uma delas.
